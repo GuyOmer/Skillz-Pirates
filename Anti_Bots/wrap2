@@ -1,0 +1,85 @@
+import math
+
+conq = False
+SAFE_R = 4
+
+def do_turn(game):
+	pirates = game.all_my_pirates()
+	islands = game.islands()
+
+	f1 = pirates[0:2] #0,1
+	f2 = pirates[2:]  #2,3
+	f1c = 2
+	f2c = 1
+	if not conq:
+		if not islands[2].owner == game.ME and pirates[0].is_lost == False == pirates[1].is_lost:
+			movePirate(game,pirates[0],islands[2])
+			movePirate(game,pirates[1],islands[2])
+		else:
+			movePirate(game,pirates[0],islands[1])
+			movePirate(game,pirates[1],islands[1])
+		if not pirates[2].is_lost:
+			movePirate(game,pirates[2],islands[1])
+		if not pirates[3].is_lost:
+			movePirate(game,pirates[3],islands[1])
+	else:
+		f1c = (f1c + FFQ(game,f1,islands[f1c]))%3
+		f2c = (f2c + FFQ(game,f2,islands[f2c]))%3
+
+	global conq
+	conq = islands[0].owner == game.ME == islands[0].owner
+	return
+
+
+def movePirate(game,pirate, dest):
+	if not pirate.is_lost:       #check if pirate is alive (should be done by caller)
+			path = game.get_directions(pirate,dest)[game.get_turn()%2*-1] #gets direction to destination
+			if not len(path) == 0:                   #if havent arrived yet
+				game.set_sail(pirate, path)
+
+def findDistance(a,b):
+	return math.sqrt(a**2+b**2)
+
+def cinRange(game,source,objects, raduis):
+	counter = 0
+	for obj in objects:
+		delta = source.location - obj.location
+		if findDistance(delta[0],delta[1])  <= raduis:
+			counter += 1
+
+def findClosest(game,source, pirates):
+	distances = []
+	for p in pirates:
+		delta = source.location - p.location
+		distances.append(findDistance(delta[0],delta[1]))
+	return pirates[distances.index(min(distances))]
+
+def findPack(game,leader,pirates):
+	pack = []
+	for p in pirates:
+		if game.in_range(leader.location,p.location):
+			pack.append(p)
+	return pack
+
+def FFQ(game,pirates,target): #Fight, Flee, Conquer
+
+	closest = findClosest(game,pirates[0],game.enemy_pirates())
+	pack = findPack(game,closest, game.enemy_pirates())
+
+	us = len(pirates)
+	them = len(len(pack))
+	for p in pirates:
+		if game.is_capturing(p):
+			us -= 1
+			break
+	for p in game.enemy_pirates():
+		if game.is_capturing(p):
+			them -= 1
+			break
+
+	if them >= us: #Flee
+		return 1
+	else: #Fight
+		for pirate in pirates:
+			movePirate(game,pirate,closest.location)
+			return 0
